@@ -2,18 +2,34 @@
 
 import nltk
 # nltk.download('reuters')
-# nltk.download('punkt')
-# nltk.download('nps_chat')
+nltk.download('punkt')
+nltk.download('nps_chat')
 from nltk.corpus import reuters
+from nltk.corpus import nps_chat
 from nltk import bigrams, trigrams
 from collections import Counter, defaultdict
 import random
+
+from nltk.corpus.util import LazyCorpusLoader
+from nltk.corpus.reader.plaintext import CategorizedPlaintextCorpusReader
+
+nps_chat_path = nltk.data.find('C:\\Users\\utente\\AppData\\Roaming\\nltk_data\\corpora\\nps_chat')
+nps_as_categorized_reader = CategorizedPlaintextCorpusReader(
+    root=nps_chat_path, fileids=r'(?!\.).*\.xml', cat_file='cats.txt'
+)
 
 # Create a placeholder for model
 model = defaultdict(lambda: defaultdict(lambda: 0))
 
 # Count frequency of co-occurance  
 for sentence in reuters.sents():
+    for w1, w2, w3 in trigrams(sentence, pad_right=True, pad_left=True):
+        model[(w1, w2)][w3] += 1
+
+print('reut type: ', type(reuters)) 
+print('nps tpye: ', type(nps_as_categorized_reader))   
+    
+for sentence in nps_as_categorized_reader.sents():
     for w1, w2, w3 in trigrams(sentence, pad_right=True, pad_left=True):
         model[(w1, w2)][w3] += 1
 
