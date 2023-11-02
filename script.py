@@ -22,9 +22,9 @@ nps_as_categorized_reader = CategorizedPlaintextCorpusReader(
 model = defaultdict(lambda: defaultdict(lambda: 0))
 
 # Count frequency of co-occurance  
-for sentence in reuters.sents():
-    for w1, w2, w3 in trigrams(sentence, pad_right=True, pad_left=True):
-        model[(w1, w2)][w3] += 1
+# for sentence in reuters.sents():
+#     for w1, w2, w3 in trigrams(sentence, pad_right=True, pad_left=True):
+#         model[(w1, w2)][w3] += 1
 
 print('reut type: ', type(reuters)) 
 print('nps tpye: ', type(nps_as_categorized_reader))   
