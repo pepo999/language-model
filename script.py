@@ -1,67 +1,70 @@
-from nltk import bigrams, trigrams
-from collections import Counter, defaultdict
-import random
-from pymongo import MongoClient
-import time
+from keras.models import Sequential
+from keras.preprocessing.sequence import pad_sequences
+import tensorflow as tf
+import numpy as np
+import re
 
-client = MongoClient('mongodb+srv://pietroviglino999:rkoEZiZp6tzduEUZ@vpp4dbtest.yseft60.mongodb.net/admin?retryWrites=true&replicaSet=atlas-du9683-shard-0&readPreference=primary&srvServiceName=mongodb&connectTimeoutMS=10000&authSource=admin&authMechanism=SCRAM-SHA-1', 27017)
-db = client['language_model']
-collection = db['wiki']
+data_text = []
+with open('data/bible.txt') as f:
+    lines = f.readlines()
+    data_text = ' '.join(lines[:20])
 
-wiki_list = list(collection.find({}, {"_id": 0, "title": 0}))
-wiki_text = [x['text']for x in wiki_list]
+def text_cleaner(text):
+    newString = text.lower()
+    newString = re.sub(r"'s\b","",newString)
+    newString = re.sub("[^a-zA-Z]", " ", newString) 
+    long_words=[]
+    for i in newString.split():
+        if len(i)>=3:                  
+            long_words.append(i)
+    return (" ".join(long_words)).strip()
+data_new = text_cleaner(data_text)
 
+def create_seq(text):
+    length = 30
+    sequences = list()
+    for i in range(length, len(text)):
+        seq = text[i-length:i+1]
+        sequences.append(seq)
+    # print('Total Sequences: %d' % len(sequences))
+    return sequences
 
+sequences = create_seq(data_new)
 
-wiki_data = []
-for text in wiki_text:
-    for sentence in text:
-        sent = []
-        split_s = sentence.split(' ')
-        for word in split_s:
-            sent.append(word)
-        wiki_data.append(sent)
+chars = sorted(list(set(data_new)))
+mapping = dict((c, i) for i, c in enumerate(chars))
 
-model = defaultdict(lambda: defaultdict(lambda: 0))
- 
-for sentence in wiki_data:
-    for w1, w2, w3 in trigrams(sentence, pad_right=True, pad_left=True):
-        model[(w1, w2)][w3] += 1
+model = tf.keras.models.load_model('./bible_1')
 
-for w1_w2 in model:
-    total_count = float(sum(model[w1_w2].values()))
-    for w3 in model[w1_w2]:
-        model[w1_w2][w3] /= total_count
- 
-def sentence(a, b, counter): 
-    if counter == 10:
-        return
-    counter += 1
-    text = [a, b]
-    sentence_finished = False
-    while not sentence_finished:
-        r = random.random()
-        accumulator = .0
-        for word in model[tuple(text[-2:])].keys():
-            accumulator += model[tuple(text[-2:])][word]
-            if accumulator >= r:
-                text.append(word)
+def generate_seq(model, mapping, seq_length, seed_text, n_chars):
+    in_text = seed_text
+    for _ in range(n_chars):
+        encoded = [mapping[char] for char in in_text]
+        encoded = pad_sequences([encoded], maxlen=seq_length, truncating='pre')
+        yhat = model.predict(encoded, verbose=0)
+        out_char = ''
+        y_prediction_classes = []
+        for x in yhat:
+            y_prediction_classes.append(np.argmax(x))
+        y_ANN_prediction_classes_arr = np.array(y_prediction_classes)
+        for char, index in mapping.items():
+            if index == y_ANN_prediction_classes_arr:
+                out_char = char
                 break
-        if text[-2:] == [None, None]:
-            sentence_finished = True    
-    sentence_res =  ' '.join([t for t in text if t]) 
-    print(sentence_res.capitalize())
-    time.sleep(1)
-    random_position = random.randint(0, len(text) - 1)
-    first_word = text[random_position - 1]
-    next_word = text[random_position] 
-    if first_word is None:
-        return
-    if next_word is None:
-        next_word = text[-1]
-        # if text[-1] is None:
-        #     return
-    sentence(first_word, next_word, counter)
-    
-counter = 0
-sentence("the", "world", counter)
+        in_text += char
+    return in_text
+
+inp = 'the world is'
+print(len(inp))
+print(generate_seq(model, mapping, 30, inp.lower(), 12))
+
+def generate_response(input_text):
+    return generate_seq(model, mapping, 30, input_text.lower(), 50)
+
+# while True:
+#     user_input = input("You: ")   
+#     if user_input.lower() == "exit":
+#         print("Goodbye!")
+#         break
+#     response = generate_response(user_input)
+#     print("Model: " + response)
