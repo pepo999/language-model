@@ -13,36 +13,41 @@ import nltk
 from nltk.tokenize import sent_tokenize
 
 
-data_text = []
-# sacred_texts = ['ac.txt.gz',
-#                 'arp.txt.gz',
-#                 'chinese_buddhism.txt.gz',
-#                 'csj.txt.gz',
-#                 'ebm.txt.gz',
-#                 'mom.txt.gz',
-#                 'salt.txt.gz',
-#                 'twi.txt.gz',
-#                 'yaq.txt.gz'
-#                 ]
-# for text in sacred_texts:
-#     with gzip.open(f'data/{text}','rt') as f:
-#         cleaned = []
-#         lines = f.readlines()
-#         for line in lines[:1000]:
-#             line = re.sub(r'\([^)]*\)', '', line)
-#             line = re.sub(r'\[[^\]]*\]', '', line)
-#             line = line.strip()
-#             cleaned.append(line)
-#         data_text = ' '.join(cleaned)
+data_text = ''
+sacred_texts = ['ac.txt.gz',
+                'arp.txt.gz',
+                'chinese_buddhism.txt.gz',
+                'csj.txt.gz',
+                'ebm.txt.gz',
+                'mom.txt.gz',
+                'salt.txt.gz',
+                'twi.txt.gz',
+                'yaq.txt.gz'
+                ]
+for text in sacred_texts:
+    try:
+        with gzip.open(f'data/{text}','rt') as f:
+            cleaned = []
+            lines = f.readlines()
+            for line in lines[:500]:
+                line = re.sub(r'\([^)]*\)', '', line)
+                line = re.sub(r'\[[^\]]*\]', '', line)
+                line = line.strip()
+                cleaned.append(line)
+            text_str = ' '.join(cleaned)
+            data_text += ' '
+            data_text += text_str
+    except:
+        print(f'{text} not found')
 
-with open('bible.txt') as f:
-    lines = f.readlines()
-    cleaned = []
-    for line in lines[:300]:
-        line = line.split(' ')
-        line = ' '.join(line[1:])
-        cleaned.append(line)
-    data_text = ' '.join(cleaned)
+# with open('data/bible.txt') as f:
+#     lines = f.readlines()
+#     cleaned = []
+#     for line in lines[:100]:
+#         line = line.split(' ')
+#         line = ' '.join(line[1:])
+#         cleaned.append(line)
+#     data_text = ' '.join(cleaned)
 
 def text_cleaner(text):
     # lower case text
@@ -63,7 +68,6 @@ def create_seq(text):
     length = 30
     sequences = list()
     for i in range(length, len(text)):
-        # select sequence of tokens
         seq = text[i-length:i+1]
         sequences.append(seq)
     print('Total Sequences: %d' % len(sequences))
@@ -77,22 +81,16 @@ mapping = dict((c, i) for i, c in enumerate(chars))
 def encode_seq(seq):
     sequences = list()
     for line in seq:
-        # integer encode line
         encoded_seq = [mapping[char] for char in line]
-        # store
         sequences.append(encoded_seq)
     return sequences
 
-# encode the sequences
 sequences = encode_seq(sequences)
 
 vocab = len(mapping)
 sequences = np.array(sequences)
-# create X and y
 X, y = sequences[:,:-1], sequences[:,-1]
-# one hot encode y
 y = to_categorical(y, num_classes=vocab)
-# create train and validation sets
 X_tr, X_val, y_tr, y_val = train_test_split(X, y, test_size=0.1, random_state=42)
 
 print('Train shape:', X_tr.shape, 'Val shape:', X_val.shape)
@@ -105,10 +103,11 @@ def build_model():
     print(model.summary())
     model.compile(loss='categorical_crossentropy', metrics=['acc'], optimizer='adam')
     model.fit(X_tr, y_tr, epochs=20, verbose=1, validation_data=(X_val, y_val))
-    model.save('./bible_1')
+    model.save('./sacred_1')
 
 # build_model()   # if uncommented this will build a model and overwrite the old one if name isn't changed
-model = tf.keras.models.load_model('./bible_1')
+model = tf.keras.models.load_model('./sacred_1')
+# model = tf.keras.models.load_model('./bible_1')
 
 def generate_seq(model, mapping, seq_length, seed_text, n_chars):
     in_text = seed_text
@@ -129,12 +128,9 @@ def generate_seq(model, mapping, seq_length, seed_text, n_chars):
         if out_char in ('.', '!', '?') or len(in_text) >= n_chars:
             break
     in_text = sent_tokenize(in_text)
-    in_text_str = ' '.join(in_text)
-    in_text_str = in_text_str.replace('and the lord', '')
-    in_text_str = in_text_str.replace('and god said let the lord', '')
-    in_text_str = in_text_str.replace('god said let the lord', '')
-    in_text_str = in_text_str.split('god')
-    in_text_str = in_text_str[0]
+    in_text_str = ' '.join(in_text) 
+    # in_text_str = in_text_str.split('the confucianists')
+    # in_text_str = in_text_str[0]
     in_text_str = in_text_str.strip()
     in_text_str += '.'
     return in_text_str
