@@ -9,47 +9,50 @@ from sklearn.model_selection import train_test_split
 import re
 import gzip
 import tensorflow as tf
+import nltk
+from nltk.tokenize import sent_tokenize
 
 
 data_text = []
-sacred_texts = ['ac.txt.gz',
-                'arp.txt.gz',
-                'chinese_buddhism.txt.gz',
-                'csj.txt.gz',
-                'ebm.txt.gz',
-                'mom.txt.gz',
-                'salt.txt.gz',
-                'twi.txt.gz',
-                'yaq.txt.gz'
-                ]
-for text in sacred_texts:
-    with gzip.open(f'data/{text}','rt') as f:
-        cleaned = []
-        lines = f.readlines()
-        for line in lines[:1000]:
-            line = re.sub(r'\([^)]*\)', '', line)
-            line = re.sub(r'\[[^\]]*\]', '', line)
-            line = line.strip()
-            cleaned.append(line)
-        data_text = ' '.join(cleaned)
+# sacred_texts = ['ac.txt.gz',
+#                 'arp.txt.gz',
+#                 'chinese_buddhism.txt.gz',
+#                 'csj.txt.gz',
+#                 'ebm.txt.gz',
+#                 'mom.txt.gz',
+#                 'salt.txt.gz',
+#                 'twi.txt.gz',
+#                 'yaq.txt.gz'
+#                 ]
+# for text in sacred_texts:
+#     with gzip.open(f'data/{text}','rt') as f:
+#         cleaned = []
+#         lines = f.readlines()
+#         for line in lines[:1000]:
+#             line = re.sub(r'\([^)]*\)', '', line)
+#             line = re.sub(r'\[[^\]]*\]', '', line)
+#             line = line.strip()
+#             cleaned.append(line)
+#         data_text = ' '.join(cleaned)
 
-# with open('data/bible.txt') as f:
-#     lines = f.readlines()
-#     cleaned = []
-#     for line in lines[:100]:
-#         line = line.split(' ')
-#         line = ' '.join(line[1:])
-#         cleaned.append(line)
-#     data_text = ' '.join(cleaned)
+with open('bible.txt') as f:
+    lines = f.readlines()
+    cleaned = []
+    for line in lines[:300]:
+        line = line.split(' ')
+        line = ' '.join(line[1:])
+        cleaned.append(line)
+    data_text = ' '.join(cleaned)
 
 def text_cleaner(text):
     # lower case text
-    newString = text.lower()
-    newString = re.sub(r"'s\b","",newString)
+    new_string = text.lower()
+    new_string = re.sub(r"'s\b","", new_string)
     # remove punctuations
-    newString = re.sub("[^a-zA-Z]", " ", newString) 
+    # newString = re.sub("[^a-zA-Z]", " ", newString) 
+    new_string = re.sub("[^a-zA-Z.!?]", " ", new_string)
     long_words=[]
-    for i in newString.split():
+    for i in new_string.split():
         if len(i)>=3:                  
             long_words.append(i)
     return (" ".join(long_words)).strip()
@@ -101,11 +104,11 @@ def build_model():
     model.add(Dense(vocab, activation='softmax'))
     print(model.summary())
     model.compile(loss='categorical_crossentropy', metrics=['acc'], optimizer='adam')
-    model.fit(X_tr, y_tr, epochs=100, verbose=1, validation_data=(X_val, y_val))
-    model.save('./sacred_1')
+    model.fit(X_tr, y_tr, epochs=20, verbose=1, validation_data=(X_val, y_val))
+    model.save('./bible_1')
 
-# build_model()   
-model = tf.keras.models.load_model('./sacred_1')
+# build_model()   # if uncommented this will build a model and overwrite the old one if name isn't changed
+model = tf.keras.models.load_model('./bible_1')
 
 def generate_seq(model, mapping, seq_length, seed_text, n_chars):
     in_text = seed_text
@@ -123,7 +126,18 @@ def generate_seq(model, mapping, seq_length, seed_text, n_chars):
                 out_char = char
                 break
         in_text += char
-    return in_text
+        if out_char in ('.', '!', '?') or len(in_text) >= n_chars:
+            break
+    in_text = sent_tokenize(in_text)
+    in_text_str = ' '.join(in_text)
+    in_text_str = in_text_str.replace('and the lord', '')
+    in_text_str = in_text_str.replace('and god said let the lord', '')
+    in_text_str = in_text_str.replace('god said let the lord', '')
+    in_text_str = in_text_str.split('god')
+    in_text_str = in_text_str[0]
+    in_text_str = in_text_str.strip()
+    in_text_str += '.'
+    return in_text_str
 
 inp = 'the world'
 print(len(inp))
