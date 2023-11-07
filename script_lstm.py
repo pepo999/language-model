@@ -19,7 +19,7 @@ sacred_texts = ['ac.txt.gz',
                 'chinese_buddhism.txt.gz',
                 'csj.txt.gz',
                 'ebm.txt.gz',
-                'mom.txt.gz',
+                # 'mom.txt.gz',
                 'salt.txt.gz',
                 'twi.txt.gz',
                 'yaq.txt.gz'
@@ -40,14 +40,16 @@ for text in sacred_texts:
     except:
         print(f'{text} not found')
 
-# with open('data/bible.txt') as f:
-#     lines = f.readlines()
-#     cleaned = []
-#     for line in lines[:100]:
-#         line = line.split(' ')
-#         line = ' '.join(line[1:])
-#         cleaned.append(line)
-#     data_text = ' '.join(cleaned)
+with open('data/bible.txt') as f:
+    lines = f.readlines()
+    cleaned = []
+    for line in lines[:500]:
+        line = line.split(' ')
+        line = ' '.join(line[1:])
+        cleaned.append(line)
+    text_str = ' '.join(cleaned)
+    data_text += ' '
+    data_text += text_str
 
 def text_cleaner(text):
     # lower case text
@@ -119,9 +121,9 @@ def generate_seq(model, mapping, seq_length, seed_text, n_chars):
         y_prediction_classes = []
         for x in yhat:
             y_prediction_classes.append(np.argmax(x))
-        y_ANN_prediction_classes_arr = np.array(y_prediction_classes)
+        y_prediction_classes_arr = np.array(y_prediction_classes)
         for char, index in mapping.items():
-            if index == y_ANN_prediction_classes_arr:
+            if index == y_prediction_classes_arr:
                 out_char = char
                 break
         in_text += char
@@ -129,14 +131,13 @@ def generate_seq(model, mapping, seq_length, seed_text, n_chars):
             break
     in_text = sent_tokenize(in_text)
     in_text_str = ' '.join(in_text) 
-    # in_text_str = in_text_str.split('the confucianists')
-    # in_text_str = in_text_str[0]
     in_text_str = in_text_str.strip()
+    in_text_str = in_text_str.split('where southern')
+    in_text_str = in_text_str[0]
     in_text_str += '.'
     return in_text_str
 
 inp = 'the world'
-print(len(inp))
 print(generate_seq(model, mapping, 30, inp.lower(), 100))
 
 def generate_response(input_text):
