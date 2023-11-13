@@ -24,33 +24,34 @@ sacred_texts = ['ac.txt.gz',
                 'twi.txt.gz',
                 'yaq.txt.gz'
                 ]
-for text in sacred_texts:
-    try:
-        with gzip.open(f'data/{text}','rt') as f:
-            cleaned = []
-            lines = f.readlines()
-            # for line in lines[:500]:
-            for line in lines:
-                line = re.sub(r'\([^)]*\)', '', line)
-                line = re.sub(r'\[[^\]]*\]', '', line)
-                line = line.strip()
-                cleaned.append(line)
-            text_str = ' '.join(cleaned)
-            data_text += ' '
-            data_text += text_str
-    except:
-        print(f'{text} not found')
+# for text in sacred_texts:
+#     try:
+#         with gzip.open(f'data/{text}','rt') as f:
+#             cleaned = []
+#             lines = f.readlines()
+#             # for line in lines[:500]:
+#             for line in lines:
+#                 line = re.sub(r'\([^)]*\)', '', line)
+#                 line = re.sub(r'\[[^\]]*\]', '', line)
+#                 line = line.strip()
+#                 cleaned.append(line)
+#             text_str = ' '.join(cleaned)
+#             data_text += ' '
+#             data_text += text_str
+#     except:
+#         print(f'{text} not found')
 
-# with open('data/bible.txt') as f:
-#     lines = f.readlines()
-#     cleaned = []
-#     for line in lines[:500]:
-#         line = line.split(' ')
-#         line = ' '.join(line[1:])
-#         cleaned.append(line)
-#     text_str = ' '.join(cleaned)
-#     data_text += ' '
-#     data_text += text_str
+with open('data/bible.txt') as f:
+    lines = f.readlines()
+    cleaned = []
+    stop = len(lines) // 6
+    for line in lines[:stop]:
+        line = line.split(' ')
+        line = ' '.join(line[1:])
+        cleaned.append(line)
+    text_str = ' '.join(cleaned)
+    data_text += ' '
+    data_text += text_str
 
 def text_cleaner(text):
     # lower case text
@@ -103,7 +104,7 @@ def build_model(name):
     model.add(Embedding(vocab, 50, input_length=30, trainable=True))
     model.add(GRU(150, recurrent_dropout=0.1, dropout=0.1))
     model.add(Dense(vocab, activation='softmax'))
-    checkpoint = ModelCheckpoint(f'./models/{name}_best.keras', 
+    checkpoint = ModelCheckpoint(f'./models/{name}_best.h5', 
                                  monitor='val_acc', 
                                  save_best_only=True, 
                                  mode='max', 
@@ -112,18 +113,18 @@ def build_model(name):
     print(model.summary())
     model.compile(loss='categorical_crossentropy', metrics=['acc'], optimizer='adam')
     try:
-        model = load_model(f'./models/{name}_best.keras')
-        print(f"Loaded pre-existing model from ./models/{name}_best.keras")
+        model = load_model(f'./models/{name}_best.h5')
+        print(f"Loaded pre-existing model from ./models/{name}_best.h5")
     except (OSError, IOError):
-        print(f"No pre-existing model found at ./models/{name}_best.keras. Training a new model.")
+        print(f"No pre-existing model found at ./models/{name}_best.h5. Training a new model.")
     model.fit(X_tr, y_tr, 
               epochs=10, 
               verbose=1, 
               validation_data=(X_val, y_val), 
               callbacks=callbacks_list)
 
-build_model("sacred_2")
-model = tf.keras.models.load_model('./sacred_2_best.h5')
+# build_model("sacred_2")
+model = tf.keras.models.load_model('./models/sacred_2_best.h5')
 
 def generate_seq(model, mapping, seq_length, seed_text, n_chars, temperature=1.0):
     in_text = seed_text
