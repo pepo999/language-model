@@ -2,7 +2,7 @@ import numpy as np
 import pandas as pd
 from keras.utils import to_categorical
 from keras.preprocessing.sequence import pad_sequences
-from keras.models import Sequential
+from keras.models import Sequential, load_model
 from keras.layers import LSTM, Dense, GRU, Embedding
 from keras.callbacks import EarlyStopping, ModelCheckpoint
 from sklearn.model_selection import train_test_split
@@ -19,7 +19,7 @@ sacred_texts = ['ac.txt.gz',
                 'chinese_buddhism.txt.gz',
                 'csj.txt.gz',
                 'ebm.txt.gz',
-                # 'mom.txt.gz',
+                'mom.txt.gz',
                 'salt.txt.gz',
                 'twi.txt.gz',
                 'yaq.txt.gz'
@@ -29,7 +29,8 @@ for text in sacred_texts:
         with gzip.open(f'data/{text}','rt') as f:
             cleaned = []
             lines = f.readlines()
-            for line in lines[:500]:
+            # for line in lines[:500]:
+            for line in lines:
                 line = re.sub(r'\([^)]*\)', '', line)
                 line = re.sub(r'\[[^\]]*\]', '', line)
                 line = line.strip()
@@ -40,24 +41,24 @@ for text in sacred_texts:
     except:
         print(f'{text} not found')
 
-with open('data/bible.txt') as f:
-    lines = f.readlines()
-    cleaned = []
-    for line in lines[:500]:
-        line = line.split(' ')
-        line = ' '.join(line[1:])
-        cleaned.append(line)
-    text_str = ' '.join(cleaned)
-    data_text += ' '
-    data_text += text_str
+# with open('data/bible.txt') as f:
+#     lines = f.readlines()
+#     cleaned = []
+#     for line in lines[:500]:
+#         line = line.split(' ')
+#         line = ' '.join(line[1:])
+#         cleaned.append(line)
+#     text_str = ' '.join(cleaned)
+#     data_text += ' '
+#     data_text += text_str
 
 def text_cleaner(text):
     # lower case text
     new_string = text.lower()
     new_string = re.sub(r"'s\b","", new_string)
     # remove punctuations
-    # newString = re.sub("[^a-zA-Z]", " ", newString) 
-    new_string = re.sub("[^a-zA-Z.!?]", " ", new_string)
+    new_string = re.sub("[^a-zA-Z]", " ", new_string) 
+    # new_string = re.sub("[^a-zA-Z.!?]", " ", new_string)
     long_words=[]
     for i in new_string.split():
         if len(i)>=3:                  
@@ -97,44 +98,50 @@ X_tr, X_val, y_tr, y_val = train_test_split(X, y, test_size=0.1, random_state=42
 
 print('Train shape:', X_tr.shape, 'Val shape:', X_val.shape)
 
-def build_model():
+def build_model(name):
     model = Sequential()
     model.add(Embedding(vocab, 50, input_length=30, trainable=True))
     model.add(GRU(150, recurrent_dropout=0.1, dropout=0.1))
     model.add(Dense(vocab, activation='softmax'))
+    checkpoint = ModelCheckpoint(f'./models/{name}_best.keras', 
+                                 monitor='val_acc', 
+                                 save_best_only=True, 
+                                 mode='max', 
+                                 verbose=1)
+    callbacks_list = [checkpoint] 
     print(model.summary())
     model.compile(loss='categorical_crossentropy', metrics=['acc'], optimizer='adam')
-    model.fit(X_tr, y_tr, epochs=20, verbose=1, validation_data=(X_val, y_val))
-    model.save('./sacred_1')
+    try:
+        model = load_model(f'./models/{name}_best.keras')
+        print(f"Loaded pre-existing model from ./models/{name}_best.keras")
+    except (OSError, IOError):
+        print(f"No pre-existing model found at ./models/{name}_best.keras. Training a new model.")
+    model.fit(X_tr, y_tr, 
+              epochs=10, 
+              verbose=1, 
+              validation_data=(X_val, y_val), 
+              callbacks=callbacks_list)
 
-# build_model()   # if uncommented this will build a model and overwrite the old one if name isn't changed
-model = tf.keras.models.load_model('./sacred_1')
-# model = tf.keras.models.load_model('./bible_1')
+build_model("sacred_2")
+model = tf.keras.models.load_model('./sacred_2_best.h5')
 
-def generate_seq(model, mapping, seq_length, seed_text, n_chars):
+def generate_seq(model, mapping, seq_length, seed_text, n_chars, temperature=1.0):
     in_text = seed_text
     for _ in range(n_chars):
         encoded = [mapping[char] for char in in_text]
         encoded = pad_sequences([encoded], maxlen=seq_length, truncating='pre')
         yhat = model.predict(encoded, verbose=0)
-        out_char = ''
-        y_prediction_classes = []
-        for x in yhat:
-            y_prediction_classes.append(np.argmax(x))
-        y_prediction_classes_arr = np.array(y_prediction_classes)
-        for char, index in mapping.items():
-            if index == y_prediction_classes_arr:
-                out_char = char
-                break
-        in_text += char
+        yhat_temp = yhat**temperature / np.sum(yhat**temperature)
+        next_index = np.random.choice(len(mapping), p=yhat_temp[0])
+        out_char = [char for char, index in mapping.items() if index == next_index][0]
+        in_text += out_char
         if out_char in ('.', '!', '?') or len(in_text) >= n_chars:
             break
     in_text = sent_tokenize(in_text)
     in_text_str = ' '.join(in_text) 
     in_text_str = in_text_str.strip()
-    in_text_str = in_text_str.split('where southern')
-    in_text_str = in_text_str[0]
     in_text_str += '.'
+    
     return in_text_str
 
 inp = 'the world'
