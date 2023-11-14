@@ -14,44 +14,46 @@ from nltk.tokenize import sent_tokenize
 
 
 data_text = ''
-sacred_texts = ['ac.txt.gz',
-                'arp.txt.gz',
-                'chinese_buddhism.txt.gz',
-                'csj.txt.gz',
-                'ebm.txt.gz',
-                'mom.txt.gz',
-                'salt.txt.gz',
-                'twi.txt.gz',
-                'yaq.txt.gz'
+sacred_texts = ['ac.txt.gz', #
+                # 'arp.txt.gz',
+                # 'chinese_buddhism.txt.gz',
+                # 'csj.txt.gz',
+                # 'ebm.txt.gz',
+                'mom.txt.gz', #
+                # 'salt.txt.gz',
+                # 'twi.txt.gz',
+                # 'yaq.txt.gz'
                 ]
-# for text in sacred_texts:
-#     try:
-#         with gzip.open(f'data/{text}','rt') as f:
-#             cleaned = []
-#             lines = f.readlines()
-#             # for line in lines[:500]:
-#             for line in lines:
-#                 line = re.sub(r'\([^)]*\)', '', line)
-#                 line = re.sub(r'\[[^\]]*\]', '', line)
-#                 line = line.strip()
-#                 cleaned.append(line)
-#             text_str = ' '.join(cleaned)
-#             data_text += ' '
-#             data_text += text_str
-#     except:
-#         print(f'{text} not found')
+for text in sacred_texts:
+    try:
+        with gzip.open(f'data/{text}','rt') as f:
+            cleaned = []
+            lines = f.readlines()
+            # for line in lines[:500]:
+            for line in lines:
+                line = re.sub(r'\([^)]*\)', '', line)
+                line = re.sub(r'\[[^\]]*\]', '', line)
+                line = line.strip()
+                cleaned.append(line)
+            text_str = ' '.join(cleaned)
+            data_text += ' '
+            data_text += text_str
+            with open('text_ex.txt', 'w') as k:
+                k.write(data_text)
+    except:
+        print(f'{text} not found')
 
-with open('data/bible.txt') as f:
-    lines = f.readlines()
-    cleaned = []
-    stop = len(lines) // 6
-    for line in lines[:stop]:
-        line = line.split(' ')
-        line = ' '.join(line[1:])
-        cleaned.append(line)
-    text_str = ' '.join(cleaned)
-    data_text += ' '
-    data_text += text_str
+# with open('data/bible.txt') as f:
+#     lines = f.readlines()
+#     cleaned = []
+#     stop = len(lines) // 6
+#     for line in lines[:stop]:
+#         line = line.split(' ')
+#         line = ' '.join(line[1:])
+#         cleaned.append(line)
+#     text_str = ' '.join(cleaned)
+#     data_text += ' '
+#     data_text += text_str
 
 def text_cleaner(text):
     # lower case text
