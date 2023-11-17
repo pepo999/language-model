@@ -16,20 +16,8 @@ from nltk.tokenize import sent_tokenize
 
 data_text = ''
 sacred_texts = [
-                # 'ac.txt.gz', #
-                # 'ajp.txt.gz',
-                # 'arw.txt.gz',
-                # 'aww.txt.gz',
-                # 'cc.txt.gz',
-                # 'ettt.txt.gz', # --
-                'gork.txt.gz',
-                # 'pr.txt.gz',
-                # 'seil.txt.gz',
-                # 'mom.txt.gz', #
-                # 'salt.txt.gz',
-                # 'wov.txt.gz',
-                # 'yaq.txt.gz',
-                # 'zfa.txt.gz'
+                'common_sense.txt.gz',
+                'sayings_of_jesus.txt.gz'
                 ]
 for text in sacred_texts:
     try:
